@@ -91,7 +91,7 @@ class EmergencySosActivity : AppCompatActivity() {
         val content = hmsManager.buildEmergencyContent(currentLocation)
         val message = SmcMessage(
             senderNumber = "self",
-            recipientNumber = "110", // police
+            recipientNumber = "110",
             content = content,
             priority = MessagePriority.EMERGENCY,
             messageType = MessageType.EMERGENCY_SOS,
@@ -102,11 +102,11 @@ class EmergencySosActivity : AppCompatActivity() {
         statusText.text = "Sending SOS via BeiDou...\n$content"
         logger.i("EmergencySOS", "Sending $content")
 
-        hmsManager.sendMessage(message) { success ->
+        hmsManager.sendMessage(message) { success, finalMsg ->
             runOnUiThread {
                 if (success) {
-                    statusText.text = "SOS SENT via satellite!\n$content"
-                    Toast.makeText(this, "SOS Sent", Toast.LENGTH_LONG).show()
+                    statusText.text = "SOS SENT via satellite!\n$content\nStatus: ${finalMsg.status}"
+                    Toast.makeText(this, "SOS Sent ${finalMsg.status}", Toast.LENGTH_LONG).show()
                 } else {
                     statusText.text = "Failed to send SOS\n$content"
                     Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
