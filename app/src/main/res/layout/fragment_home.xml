@@ -4,114 +4,24 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="12dp">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
-
-        <com.google.android.material.textview.MaterialTextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="🛰️ BeiDou Satellite Messenger v1.2.0"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:paddingBottom="8dp"/>
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            app:cardElevation="4dp"
-            app:strokeColor="#6200EE"
-            app:strokeWidth="1dp">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="10dp">
-                <TextView
-                    android:id="@+id/statusText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Status loading..."
-                    android:textSize="11sp"
-                    android:fontFamily="monospace"/>
-                <TextView
-                    android:id="@+id/signalText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="No signal - Enable Test Mode"
-                    android:paddingTop="6dp"
-                    android:textColor="#6200EE"
-                    android:textStyle="bold"
-                    android:textSize="12sp"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+        <com.google.android.material.textview.MaterialTextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="🛰️ BeiDou v1.3.0 - Pura 70 Ready" android:textSize="18sp" android:textStyle="bold" android:gravity="center" android:paddingBottom="8dp"/>
+        <com.google.android.material.card.MaterialCardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" app:cardElevation="4dp" app:strokeColor="#6200EE" app:strokeWidth="1dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="10dp">
+                <TextView android:id="@+id/statusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Status..." android:textSize="10sp" android:fontFamily="monospace"/>
+                <TextView android:id="@+id/signalText" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="No signal" android:paddingTop="6dp" android:textColor="#6200EE" android:textStyle="bold" android:textSize="11sp"/>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/bypassSwitch"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Bypass CN"
-                android:textSize="12sp"/>
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/testModeSwitch"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Test Mode"
-                android:textSize="12sp"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+            <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/bypassSwitch" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Bypass CN" android:textSize="11sp"/>
+            <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/testModeSwitch" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Test Mode" android:textSize="11sp"/>
         </LinearLayout>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/autoDetectButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="🔍 Auto-Detect Best Bypass Method (MeeTime)"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="8dp"/>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/sendMessageButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="✉️ ارسال پیام به شماره خاص"
-            style="@style/Widget.Material3.Button"
-            app:backgroundTint="#2196F3"/>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/searchButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="📡 Satellite Search &amp; Compass"
-            style="@style/Widget.Material3.Button"/>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/sosButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="🆘 Emergency SOS"
-            style="@style/Widget.Material3.Button"
-            app:backgroundTint="#F44336"/>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/historyButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="📜 Message History"/>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/settingsButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="⚙️ Settings - Region &amp; Logs"/>
+        <com.google.android.material.button.MaterialButton android:id="@+id/openOfficialButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="🛰️ باز کردن پیام ماهواره رسمی (Pura 70)" style="@style/Widget.Material3.Button" app:backgroundTint="#4CAF50" android:visibility="gone" android:layout_marginTop="4dp"/>
+        <com.google.android.material.button.MaterialButton android:id="@+id/autoDetectButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="🔍 Auto-Detect Best Bypass (MeeTime)" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_marginTop="4dp" android:layout_marginBottom="4dp"/>
+        <com.google.android.material.button.MaterialButton android:id="@+id/sendMessageButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="✉️ ارسال پیام به شماره خاص (بدون پلیس)" style="@style/Widget.Material3.Button" app:backgroundTint="#2196F3"/>
+        <com.google.android.material.button.MaterialButton android:id="@+id/searchButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="📡 Satellite Search &amp; Compass (Test)" style="@style/Widget.Material3.Button"/>
+        <com.google.android.material.button.MaterialButton android:id="@+id/sosButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="🆘 Emergency SOS (to 110)" style="@style/Widget.Material3.Button" app:backgroundTint="#F44336"/>
+        <com.google.android.material.button.MaterialButton android:id="@+id/historyButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="📜 Message History"/>
+        <com.google.android.material.button.MaterialButton android:id="@+id/settingsButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="⚙️ Settings - Region &amp; Logs &amp; Pura 70 Guide"/>
     </LinearLayout>
 </ScrollView>
