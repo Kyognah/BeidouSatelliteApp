@@ -238,7 +238,7 @@ jobs:
             # Write base64 to file first to handle newlines properly
             echo "${{ secrets.KEYSTORE_BASE64 }}" > keystore.b64
             base64 -d keystore.b64 > release.keystore
-            echo "filePath=release.keystore" >> $GITHUB_OUTPUT
+            echo "filePath=$(pwd)/release.keystore" >> $GITHUB_OUTPUT
             echo "Keystore decoded successfully, size: $(wc -c < release.keystore) bytes"
             # Verify keystore
             keytool -list -keystore release.keystore -storepass "${{ secrets.KEYSTORE_PASSWORD }}" -alias "${{ secrets.KEY_ALIAS }}" || echo "Keytool verification failed"
