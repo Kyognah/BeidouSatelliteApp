@@ -248,6 +248,16 @@ class RegionBypassManager @Inject constructor(
         logger.i(TAG, "Test mode applied - simulating satellite")
     }
 
+    private fun applyBypass(method: BypassMethod) {
+        when (method) {
+            BypassMethod.SOFTWARE_SPOOF -> applySoftwareSpoof()
+            BypassMethod.HMS_REFLECTION -> applyHmsReflection()
+            BypassMethod.ADB_SETTINGS -> applyAdbSettings()
+            BypassMethod.MAGISK -> applyMagisk()
+            BypassMethod.TEST_MODE -> applyTestMode()
+        }
+    }
+
     private fun restoreRegion() {
         try {
             prefs.edit().remove("spoofed_region").remove("spoofed_locale").remove("test_mode_prefs").apply()

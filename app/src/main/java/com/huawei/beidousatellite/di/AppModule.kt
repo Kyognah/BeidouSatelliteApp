@@ -20,7 +20,9 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideLogger(): SatelliteLogger = SatelliteLogger()
+    fun provideLogger(
+        @ApplicationContext context: Context
+    ): SatelliteLogger = SatelliteLogger(context)
 
     @Provides
     @Singleton
