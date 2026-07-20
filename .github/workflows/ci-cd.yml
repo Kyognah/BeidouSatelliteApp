@@ -222,13 +222,14 @@ jobs:
           if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
             echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
             echo "filePath=release.keystore" >> $GITHUB_OUTPUT
+            echo "Keystore decoded successfully"
           else
             echo "KEYSTORE_BASE64 secret not set, skipping keystore decode"
             echo "filePath=" >> $GITHUB_OUTPUT
           fi
 
       - name: Build Release AAB
-        if: ${{ secrets.KEYSTORE_BASE64 != '' && steps.keystore.outputs.filePath != '' }}
+        if: ${{ steps.keystore.outputs.filePath != '' }}
         run: |
           ./gradlew bundleRelease \
             -Pandroid.injected.signing.store.file=${{ steps.keystore.outputs.filePath }} \
@@ -243,7 +244,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
       - name: Build Release APK
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: ${{ steps.keystore.outputs.filePath != '' }}
         run: |
           ./gradlew assembleRelease \
             -Pandroid.injected.signing.store.file=${{ steps.keystore.outputs.filePath }} \
