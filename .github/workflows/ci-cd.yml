@@ -223,9 +223,9 @@ jobs:
         with:
           fileName: 'release.keystore'
           encodedString: ${{ secrets.KEYSTORE_BASE64 }}
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
 
       - name: Build Release AAB
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         run: |
           ./gradlew bundleRelease \
             -Pandroid.injected.signing.store.file=${{ steps.keystore.outputs.filePath }} \
@@ -240,6 +240,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
       - name: Build Release APK
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         run: |
           ./gradlew assembleRelease \
             -Pandroid.injected.signing.store.file=${{ steps.keystore.outputs.filePath }} \
