@@ -63,7 +63,7 @@
             android:id="@+id/searchButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Satellite Search & Compass"
+            android:text="Satellite Search &amp; Compass"
             style="@style/Widget.Material3.Button"/>
         <com.google.android.material.button.MaterialButton
             android:id="@+id/sosButton"
