@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.*
+import android.telephony.SmsManager
 import com.huawei.beidousatellite.data.model.*
 import com.huawei.beidousatellite.data.region.RegionBypassManager
 import com.huawei.beidousatellite.util.SatelliteLogger
@@ -66,7 +67,7 @@ class HmsSmcManager @Inject constructor(
     inner class IncomingHandler : Handler(Looper.getMainLooper()) {
         override fun handleMessage(msg: Message) {
             try {
-                logger.hms("[INCOMING] what=${msg.what} arg1=${msg.arg1} arg2=${msg.arg2} data=${msg.data}")
+                logger.hms("[INCOMING] what=${msg.what} arg1=${msg.arg1} arg2=${msg.arg2} data=${msg.data} from=${msg.replyTo}")
                 when (msg.what) {
                     1 -> {
                         val status = msg.arg1
@@ -95,7 +96,7 @@ class HmsSmcManager @Inject constructor(
                     }
                 }
             } catch (e: Throwable) {
-                logger.e(TAG, "IncomingHandler failed", e)
+                logger.e(TAG, "IncomingHandler failed: ${e.message}", e)
             }
         }
     }
@@ -103,7 +104,7 @@ class HmsSmcManager @Inject constructor(
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             try {
-                logger.hms("onServiceConnected: $name, binder=$service")
+                logger.hms("onServiceConnected: $name, binder=$service, isTest=${isTestMode()}")
                 serviceMessenger = Messenger(service)
                 isBound = true
                 _connectionState.value = true
@@ -114,11 +115,11 @@ class HmsSmcManager @Inject constructor(
                     serviceMessenger?.send(reg)
                     logger.hms("Sent registration message to service")
                 } catch (e: Throwable) {
-                    logger.e(TAG, "Register client failed", e)
+                    logger.e(TAG, "Register client failed: ${e.message}", e)
                 }
                 queryCapability()
             } catch (e: Throwable) {
-                logger.e(TAG, "onServiceConnected exception", e)
+                logger.e(TAG, "onServiceConnected exception: ${e.message}", e)
             }
         }
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -130,9 +131,10 @@ class HmsSmcManager @Inject constructor(
     }
 
     fun connect() {
+        logger.i(TAG, "========================================")
         logger.i(TAG, "=== CONNECT called ===")
-        logger.i(TAG, "isTestMode=${isTestMode()}, bypassEnabled=${regionManager.isBypassEnabledSync()}, bypassMethod=${regionManager.getBypassMethodSync()}, supported=${regionManager.isSatelliteSupported()}, region=${regionManager.getCurrentRegion()}")
-        logger.hms("Connect entry: testMode=${isTestMode()}")
+        logger.d(TAG, "isTestMode=${isTestMode()}, bypassEnabled=${regionManager.isBypassEnabledSync()}, bypassMethod=${regionManager.getBypassMethodSync()}, supported=${regionManager.isSatelliteSupported()}, region=${regionManager.getCurrentRegion()}, isBound=$isBound")
+        logger.hms("Connect entry: testMode=${isTestMode()} bypass=${regionManager.isBypassEnabledSync()}")
 
         try {
             if (isTestMode()) {
@@ -143,29 +145,30 @@ class HmsSmcManager @Inject constructor(
                     ackSupport = 1, sendIntervalSec = 10, batteryWarningPercent = 15, foldTipsValue = 0,
                     maxMessageLength = 140, isServiceActive = true
                 )
-                logger.i(TAG, "Test capability set: searchMode=2 direct send")
+                logger.i(TAG, "Test capability set: searchMode=2 direct send, rcv=1")
                 startTestModeSimulation()
+                logger.i(TAG, "=== CONNECT finished (TEST MODE) connectionState=${_connectionState.value} ===")
                 return
             }
 
-            // Try to bind to HMS service - may throw SecurityException on non-Huawei devices
+            // Try HMS
             try {
                 val intent = Intent()
                 intent.component = ComponentName(HMS_SMC_PACKAGE, HMS_SMC_SERVICE)
-                logger.hms("Attempting bind to HMS SMC: $HMS_SMC_PACKAGE/$HMS_SMC_SERVICE")
+                logger.hms("Attempting bind to HMS SMC: $HMS_SMC_PACKAGE/$HMS_SMC_SERVICE, context=$context")
                 val bound = context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
                 logger.hms("Bind HMS SMC result: $bound")
                 if (bound) {
-                    logger.i(TAG, "HMS SMC bind succeeded")
+                    logger.i(TAG, "HMS SMC bind succeeded, waiting for onServiceConnected")
                     return
                 } else {
                     logger.w(TAG, "HMS SMC bind returned false, trying MeeTime")
                 }
             } catch (se: SecurityException) {
-                logger.e(TAG, "SecurityException binding HMS SMC (expected on non-Huawei devices): ${se.message}", se)
-                logger.hms("SecurityException HMS bind - this is normal on non-Huawei, will try MeeTime then fallback to test mode")
+                logger.e(TAG, "SecurityException binding HMS SMC (expected on non-Huawei): ${se.message}", se)
+                logger.hms("SecurityException HMS bind - normal on non-Huawei, will try MeeTime then fallback")
             } catch (e: Throwable) {
-                logger.e(TAG, "Exception binding HMS SMC", e)
+                logger.e(TAG, "Exception binding HMS SMC: ${e.message}", e)
             }
 
             try {
@@ -178,26 +181,24 @@ class HmsSmcManager @Inject constructor(
                     logger.i(TAG, "MeeTime SMC bind succeeded")
                     return
                 } else {
-                    logger.w(TAG, "MeeTime SMC bind returned false")
+                    logger.w(TAG, "MeeTime SMC bind returned false - signatureOrSystem permission required, expected on non-Huawei")
                 }
             } catch (se: SecurityException) {
-                logger.e(TAG, "SecurityException binding MeeTime SMC: ${se.message} - This happens on non-Huawei devices because com.huawei.hwvoipservice is signatureOrSystem. Falling back to test mode simulation.", se)
-                logger.hms("SecurityException MeeTime bind - expected on non-Huawei, falling back to test simulation")
-                // Fallback to test mode simulation even if test mode pref is false, to avoid crash and to allow UI to work
+                logger.e(TAG, "SecurityException binding MeeTime SMC: ${se.message} - This happens on non-Huawei because com.huawei.hwvoipservice is signatureOrSystem. Falling back to test simulation.", se)
+                logger.hms("SecurityException MeeTime bind - expected, fallback to test simulation")
                 _connectionState.value = true
                 _capability.value = _capability.value.copy(searchMode = 2, isServiceActive = true)
                 startTestModeSimulation()
-                logger.i(TAG, "Fallback to test mode simulation after SecurityException")
+                logger.i(TAG, "Fallback to test mode simulation after SecurityException, connectionState=true")
                 return
             } catch (e: Throwable) {
-                logger.e(TAG, "Exception binding MeeTime SMC", e)
+                logger.e(TAG, "Exception binding MeeTime SMC: ${e.message}", e)
             }
 
-            logger.w(TAG, "Both SMC services bind failed or returned false")
+            logger.w(TAG, "Both SMC services bind failed")
             _connectionState.value = false
-            // Even if not in test mode, start simulation to keep UI alive (avoid crash reported)
             if (!isTestMode()) {
-                logger.i(TAG, "Starting simulation as fallback because real services unavailable")
+                logger.i(TAG, "Starting simulation as fallback because real services unavailable - to keep UI alive")
                 _connectionState.value = true
                 _capability.value = _capability.value.copy(searchMode = 2, isServiceActive = true)
                 startTestModeSimulation()
@@ -205,39 +206,42 @@ class HmsSmcManager @Inject constructor(
         } catch (e: Throwable) {
             logger.e(TAG, "Connect outer exception - should never crash: ${e.message}", e)
             _connectionState.value = false
-            // Ensure we don't crash the app - fallback to simulation
             try {
                 _connectionState.value = true
                 startTestModeSimulation()
-            } catch (_: Throwable) {}
+                logger.i(TAG, "Emergency fallback to simulation after outer exception")
+            } catch (e2: Throwable) {
+                logger.e(TAG, "Emergency fallback also failed", e2)
+            }
         } finally {
-            logger.i(TAG, "=== CONNECT finished, connectionState=${_connectionState.value} ===")
+            logger.i(TAG, "=== CONNECT finished, connectionState=${_connectionState.value} capability=${_capability.value} ===")
+            logger.i(TAG, "========================================")
         }
     }
 
     fun disconnect() {
-        logger.i(TAG, "Disconnect called, isTestMode=${isTestMode()}, isBound=$isBound")
+        logger.i(TAG, "Disconnect called, isTestMode=${isTestMode()}, isBound=$isBound, jobActive=${testModeJob?.isActive}")
         try {
             if (!isTestMode()) {
                 testModeJob?.cancel()
                 logger.i(TAG, "Cancelled testModeJob (non-test mode)")
             } else {
-                logger.i(TAG, "Keeping testModeJob alive in test mode")
+                logger.i(TAG, "Keeping testModeJob alive in test mode as per fix for crash report")
             }
             if (isBound) {
                 try { 
                     context.unbindService(serviceConnection)
-                    logger.hms("Unbound service")
+                    logger.hms("Unbound service successfully")
                 } catch (e: Throwable) { 
-                    logger.e(TAG, "Unbind failed", e)
+                    logger.e(TAG, "Unbind failed: ${e.message}", e)
                 }
                 isBound = false
             }
             _connectionState.value = false
             _searchStatus.value = SatelliteSearchStatus.IDLE
-            logger.hms("Disconnected")
+            logger.hms("Disconnected, state set to false/idle")
         } catch (e: Throwable) {
-            logger.e(TAG, "Disconnect exception", e)
+            logger.e(TAG, "Disconnect exception: ${e.message}", e)
         }
     }
 
@@ -245,39 +249,39 @@ class HmsSmcManager @Inject constructor(
         logger.i(TAG, "forceStopSimulation called")
         testModeJob?.cancel()
         _searchStatus.value = SatelliteSearchStatus.IDLE
-        logger.i(TAG, "Simulation stopped")
+        logger.i(TAG, "Simulation stopped, status idle")
     }
 
     private fun isTestMode(): Boolean {
         return try {
             val prefs = context.getSharedPreferences("beidou_region", Context.MODE_PRIVATE)
             val tm = prefs.getBoolean("test_mode_prefs", false)
-            logger.d(TAG, "isTestMode check: $tm")
+            logger.d(TAG, "isTestMode check: $tm from prefs")
             tm
         } catch (e: Throwable) { 
-            logger.e(TAG, "isTestMode check failed", e)
+            logger.e(TAG, "isTestMode check failed: ${e.message}", e)
             false 
         }
     }
 
     fun queryCapability() {
-        logger.i(TAG, "queryCapability called, isTest=${isTestMode()}")
+        logger.i(TAG, "queryCapability called, isTest=${isTestMode()}, bound=$isBound messenger=$serviceMessenger")
         if (isTestMode()) {
-            logger.i(TAG, "Test mode, skipping queryCapability, using simulated capability")
+            logger.i(TAG, "Test mode, skipping real queryCapability, using simulated capability: ${_capability.value}")
             return
         }
         try {
             val msg = Message.obtain(null, 1001)
             msg.replyTo = incomingMessenger
             serviceMessenger?.send(msg)
-            logger.hms("Sent queryCapability message 1001")
+            logger.hms("Sent queryCapability message 1001 to service")
         } catch (e: Throwable) {
-            logger.e(TAG, "queryCapability failed", e)
+            logger.e(TAG, "queryCapability failed: ${e.message}", e)
         }
     }
 
     fun startSatelliteSearch() {
-        logger.i(TAG, "=== startSatelliteSearch called: isTest=${isTestMode()} bypass=${regionManager.isBypassEnabledSync()} ===")
+        logger.i(TAG, "=== startSatelliteSearch called: isTest=${isTestMode()} bypass=${regionManager.isBypassEnabledSync()} currentStatus=${_searchStatus.value} ===")
         _searchStatus.value = SatelliteSearchStatus.SEARCHING
         logger.i(TAG, "Search status -> SEARCHING")
 
@@ -290,12 +294,12 @@ class HmsSmcManager @Inject constructor(
                     logger.i(TAG, "Search status still SEARCHING after 1s")
                     delay(2000)
                     _searchStatus.value = SatelliteSearchStatus.ACQUIRING
-                    logger.i(TAG, "Search status -> ACQUIRING")
+                    logger.i(TAG, "Search status -> ACQUIRING (satellite signal acquiring)")
                     delay(2000)
                     _searchStatus.value = SatelliteSearchStatus.TRACKING
-                    logger.i(TAG, "Search status -> TRACKING - satellite found!")
+                    logger.i(TAG, "Search status -> TRACKING - satellite found! Ready to send")
                 } catch (e: Throwable) {
-                    logger.e(TAG, "Search progression failed", e)
+                    logger.e(TAG, "Search progression failed: ${e.message}", e)
                 }
             }
             if (isTestMode()) {
@@ -309,21 +313,21 @@ class HmsSmcManager @Inject constructor(
             msg.replyTo = incomingMessenger
             msg.arg1 = 1
             serviceMessenger?.send(msg)
-            logger.hms("Sent startSearch message 1002 arg1=1")
+            logger.hms("Sent startSearch message 1002 arg1=1 to service")
         } catch (e: Throwable) {
-            logger.e(TAG, "startSearch failed", e)
+            logger.e(TAG, "startSearch failed: ${e.message}", e)
             _searchStatus.value = SatelliteSearchStatus.ERROR
         }
     }
 
     fun stopSatelliteSearch() {
-        logger.i(TAG, "stopSatelliteSearch called")
+        logger.i(TAG, "stopSatelliteSearch called, currentStatus=${_searchStatus.value}, isTest=${isTestMode()}")
         _searchStatus.value = SatelliteSearchStatus.IDLE
         if (!isTestMode()) {
             testModeJob?.cancel()
-            logger.i(TAG, "Cancelled simulation (non-test mode)")
+            logger.i(TAG, "Cancelled simulation (non-test mode) because stop requested")
         } else {
-            logger.i(TAG, "Keeping simulation alive - user said it stops moving after re-entering search, so we keep it")
+            logger.i(TAG, "Keeping simulation alive in test mode - per user feedback that it stops moving")
         }
         if (isTestMode()) return
         try {
@@ -333,54 +337,72 @@ class HmsSmcManager @Inject constructor(
             serviceMessenger?.send(msg)
             logger.hms("Sent stopSearch message 1002 arg1=0")
         } catch (e: Throwable) {
-            logger.e(TAG, "stopSearch failed", e)
+            logger.e(TAG, "stopSearch failed: ${e.message}", e)
         }
     }
 
     fun sendMessage(message: SmcMessage, callback: (Boolean, SmcMessage) -> Unit = { _, _ -> }) {
+        logger.i(TAG, "========================================")
         logger.i(TAG, "=== sendMessage called ===")
-        logger.message("User sending to ${message.recipientNumber}: ${message.content} id=${message.messageId} priority=${message.priority} type=${message.messageType} lat=${message.latitude} lon=${message.longitude} isTest=${isTestMode()}")
+        logger.i(TAG, "Recipient: ${message.recipientNumber}, Content: '${message.content}', Priority: ${message.priority}, Type: ${message.messageType}")
+        logger.i(TAG, "Location: lat=${message.latitude} lon=${message.longitude} alt=${message.altitude}")
+        logger.i(TAG, "isTestMode=${isTestMode()}, isBound=$isBound, messenger=$serviceMessenger, connectionState=${_connectionState.value}")
+        logger.message("User sending to ${message.recipientNumber}: ${message.content} id=${message.messageId} priority=${message.priority}")
+
         val queued = message.copy(sendTime = Instant.now(), status = MessageStatus.QUEUED)
         _messages.value = _messages.value + queued
-        logger.message("Message QUEUED: ${queued.messageId} to ${queued.recipientNumber} content=${queued.content}")
+        logger.message("Message QUEUED: ${queued.messageId} to ${queued.recipientNumber}")
 
         if (isTestMode()) {
-            logger.i(TAG, "Test mode send - simulating progression QUEUED->SEARCHING->SENDING->SENT->DELIVERED")
+            logger.i(TAG, "Test mode send - will simulate QUEUED->SEARCHING_SATELLITE->SENDING->SENT->DELIVERED")
             applicationScope.launch {
                 try {
                     delay(500)
                     val searching = queued.copy(status = MessageStatus.SEARCHING_SATELLITE)
                     _messages.value = _messages.value.map { if (it.messageId == searching.messageId) searching else it }
-                    logger.message("Status SEARCHING_SATELLITE for ${searching.messageId}")
+                    logger.message("Status SEARCHING_SATELLITE for ${searching.messageId} - searching satellite")
 
                     delay(1000)
                     val sending = searching.copy(status = MessageStatus.SENDING)
                     _messages.value = _messages.value.map { if (it.messageId == sending.messageId) sending else it }
-                    logger.message("Status SENDING for ${sending.messageId}")
+                    logger.message("Status SENDING for ${sending.messageId} - sending via simulated satellite")
 
                     delay(1500)
                     val sent = sending.copy(status = MessageStatus.SENT, sendTime = Instant.now())
                     _messages.value = _messages.value.map { if (it.messageId == sent.messageId) sent else it }
-                    logger.message("Status SENT for ${sent.messageId} - saved")
+                    logger.message("Status SENT for ${sent.messageId} - sent to satellite, waiting ACK")
 
                     delay(1200)
                     val delivered = sent.copy(status = MessageStatus.DELIVERED, ackReceived = true, ackTime = Instant.now())
                     _messages.value = _messages.value.map { if (it.messageId == delivered.messageId) delivered else it }
-                    logger.message("Status DELIVERED for ${delivered.messageId} - final")
+                    logger.message("Status DELIVERED for ${delivered.messageId} - ACK received (simulated) - NOTE: In test mode, message does NOT actually go to recipient phone, only local simulation. For real SMS delivery, use SMS fallback option.")
+
+                    // Also try real SMS as fallback for testing so user actually receives something
+                    try {
+                        logger.i(TAG, "Test mode: also attempting real SMS fallback via SmsManager for recipient ${delivered.recipientNumber} so user actually receives something")
+                        val smsManager = if (android.os.Build.VERSION.SDK_INT >= 31) context.getSystemService(SmsManager::class.java) else SmsManager.getDefault()
+                        val smsContent = "[BeiDou Test Simulated] ${delivered.content} (Lat:${delivered.latitude}, Lon:${delivered.longitude})"
+                        smsManager.sendTextMessage(delivered.recipientNumber, null, smsContent, null, null)
+                        logger.message("SMS fallback sent to ${delivered.recipientNumber}: $smsContent")
+                        logger.i(TAG, "SMS fallback sent successfully to ${delivered.recipientNumber}")
+                    } catch (e: Throwable) {
+                        logger.e(TAG, "SMS fallback failed (needs SEND_SMS permission): ${e.message}", e)
+                        logger.message("SMS fallback failed: ${e.message} - user will NOT receive real SMS, only local simulation")
+                    }
 
                     launch(Dispatchers.Main) { 
-                        logger.i(TAG, "Callback success for ${delivered.messageId}")
+                        logger.i(TAG, "Callback success for ${delivered.messageId} status=${delivered.status}")
                         callback(true, delivered) 
                     }
                 } catch (e: Throwable) {
-                    logger.e(TAG, "Test send simulation failed", e)
+                    logger.e(TAG, "Test send simulation failed: ${e.message}", e)
                     launch(Dispatchers.Main) { callback(false, queued.copy(status = MessageStatus.FAILED)) }
                 }
             }
             return
         }
 
-        // Real mode - would actually send via satellite
+        // Real mode
         logger.i(TAG, "Real mode send - attempting via HMS service, bound=$isBound messenger=$serviceMessenger")
         try {
             val msg = Message.obtain(null, 1003)
@@ -397,21 +419,36 @@ class HmsSmcManager @Inject constructor(
             msg.replyTo = incomingMessenger
             if (serviceMessenger != null) {
                 serviceMessenger?.send(msg)
-                logger.hms("Sent real message via serviceMessenger: id=${message.messageId}")
+                logger.hms("Sent real message via serviceMessenger: id=${message.messageId} to ${message.recipientNumber}")
                 logger.message("Real message sent request for ${message.messageId}")
+                val sent = queued.copy(status = MessageStatus.SENT)
+                _messages.value = _messages.value.map { if (it.messageId == sent.messageId) sent else it }
+                applicationScope.launch(Dispatchers.Main) { callback(true, sent) }
             } else {
-                logger.w(TAG, "serviceMessenger is null - not bound, cannot send real message, failing")
-                val failed = queued.copy(status = MessageStatus.FAILED)
-                _messages.value = _messages.value.map { if (it.messageId == failed.messageId) failed else it }
-                applicationScope.launch(Dispatchers.Main) { callback(false, failed) }
-                return
+                logger.w(TAG, "serviceMessenger is null - not bound, cannot send real satellite message. Trying SMS fallback.")
+                // SMS fallback for real mode too when service not bound
+                try {
+                    val smsManager = if (android.os.Build.VERSION.SDK_INT >= 31) context.getSystemService(SmsManager::class.java) else SmsManager.getDefault()
+                    smsManager.sendTextMessage(message.recipientNumber, null, "[BeiDou Real Attempt Fallback SMS] ${message.content}", null, null)
+                    logger.message("SMS fallback sent in real mode to ${message.recipientNumber}")
+                    val sent = queued.copy(status = MessageStatus.SENT)
+                    _messages.value = _messages.value.map { if (it.messageId == sent.messageId) sent else it }
+                    applicationScope.launch(Dispatchers.Main) { callback(true, sent) }
+                } catch (e2: Throwable) {
+                    logger.e(TAG, "Both real satellite and SMS fallback failed", e2)
+                    val failed = queued.copy(status = MessageStatus.FAILED)
+                    _messages.value = _messages.value.map { if (it.messageId == failed.messageId) failed else it }
+                    applicationScope.launch(Dispatchers.Main) { callback(false, failed) }
+                }
             }
-            applicationScope.launch(Dispatchers.Main) { callback(true, queued.copy(status = MessageStatus.SENT)) }
         } catch (e: Throwable) {
-            logger.e(TAG, "Real sendMessage failed", e)
+            logger.e(TAG, "Real sendMessage failed: ${e.message}", e)
             val failed = queued.copy(status = MessageStatus.FAILED)
             _messages.value = _messages.value.map { if (it.messageId == failed.messageId) failed else it }
             applicationScope.launch(Dispatchers.Main) { callback(false, failed) }
+        } finally {
+            logger.i(TAG, "=== sendMessage finished ===")
+            logger.i(TAG, "========================================")
         }
     }
 
@@ -439,13 +476,13 @@ class HmsSmcManager @Inject constructor(
         testModeJob = applicationScope.launch {
             var orbit = 0.0
             var prn = Random.nextInt(1, 63)
-            logger.i(TAG, "Orbit simulation started PRN $prn")
+            logger.i(TAG, "Orbit simulation started PRN $prn initial orbit $orbit")
             try {
                 while (true) {
                     orbit = (orbit + 2.0) % 360.0
                     if (orbit < 2.0) {
                         prn = Random.nextInt(1, 63)
-                        logger.i(TAG, "New satellite pass PRN $prn")
+                        logger.i(TAG, "New satellite pass PRN $prn orbit reset")
                     }
                     val elevation = 20 + 60 * (0.5 + 0.5 * sin(Math.toRadians(orbit * 2)))
                     val snr = 20 + (elevation / 90.0) * 18 + Random.nextDouble(-1.5, 1.5)
@@ -457,15 +494,16 @@ class HmsSmcManager @Inject constructor(
                         dopplerHz = Random.nextDouble(-800.0, 800.0)
                     )
                     _signalInfo.value = signal
-                    if (orbit.toInt() % 15 == 0) {
+                    if (orbit.toInt() % 30 == 0) {
                         logger.sensor("Orbit update: orbit=%.1f PRN %d Az %.1f El %.1f SNR %.1f".format(orbit, prn, orbit, elevation, snr))
                     }
                     delay(600)
                 }
             } catch (e: Throwable) {
-                logger.e(TAG, "Orbit simulation crashed", e)
+                logger.e(TAG, "Orbit simulation crashed: ${e.message}", e)
             }
         }
+        logger.i(TAG, "Test mode job launched: ${testModeJob?.isActive}")
     }
 
     fun buildEmergencyContent(location: android.location.Location?): String {
