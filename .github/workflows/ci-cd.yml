@@ -209,16 +209,16 @@ jobs:
         with:
           gradle-version: ${{ env.GRADLE_VERSION }}
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          api-level: ${{ env.ANDROID_SDK_VERSION }}
-          ndk-version: ${{ env.ANDROID_NDK_VERSION }}
-          build-tools-version: ${{ env.ANDROID_BUILD_TOOLS_VERSION }}
-          emulator: false
+      - name: Debug Secrets
+        run: |
+          echo "KEYSTORE_BASE64 is set: ${{ secrets.KEYSTORE_BASE64 != '' }}"
+          echo "KEYSTORE_PASSWORD is set: ${{ secrets.KEYSTORE_PASSWORD != '' }}"
+          echo "KEY_ALIAS is set: ${{ secrets.KEY_ALIAS != '' }}"
+          echo "KEY_PASSWORD is set: ${{ secrets.KEY_PASSWORD != '' }}"
 
       - name: Decode Keystore
         id: keystore
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         uses: timheuer/base64-to-file@v1.2
         with:
           fileName: 'release.keystore'
