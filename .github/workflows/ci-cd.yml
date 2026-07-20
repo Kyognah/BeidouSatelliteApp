@@ -70,11 +70,11 @@ jobs:
             android-sdk-${{ runner.os }}-
 
       - name: Run Android Lint
-        run: ./gradlew lintDebug --no-daemon
+        run: bash ./gradlew lintDebug --no-daemon
         continue-on-error: true
 
       - name: Run Detekt (if configured)
-        run: ./gradlew detekt --no-daemon
+        run: bash ./gradlew detekt --no-daemon
         continue-on-error: true
 
       - name: Upload Lint Report
@@ -114,7 +114,7 @@ jobs:
           gradle-version: ${{ env.GRADLE_VERSION }}
 
       - name: Run Unit Tests
-        run: ./gradlew testDebugUnitTest --no-daemon --continue
+        run: bash ./gradlew testDebugUnitTest --no-daemon --continue
         continue-on-error: true
 
       - name: Upload Test Reports
@@ -172,7 +172,7 @@ jobs:
           emulator: false
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon
+        run: bash ./gradlew assembleDebug --no-daemon
         continue-on-error: true
 
       - name: Upload Debug APK
@@ -250,7 +250,7 @@ jobs:
       - name: Build Release AAB
         if: ${{ steps.keystore.outputs.filePath != '' }}
         run: |
-          ./gradlew bundleRelease \
+          bash ./gradlew bundleRelease \
             -Pandroid.injected.signing.store.file=${{ steps.keystore.outputs.filePath }} \
             -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
@@ -265,7 +265,7 @@ jobs:
       - name: Build Release APK
         if: ${{ steps.keystore.outputs.filePath != '' }}
         run: |
-          ./gradlew assembleRelease \
+          bash ./gradlew assembleRelease \
             -Pandroid.injected.signing.store.file=${{ steps.keystore.outputs.filePath }} \
             -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
