@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <com.huawei.beidousatellite.ui.satellite.CompassView
+        android:id="@+id/compassView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Status: IDLE"
+        android:textSize="14sp"
+        android:fontFamily="monospace"
+        android:paddingTop="8dp"/>
+    <TextView
+        android:id="@+id/calibrationText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Calibration: ..."
+        android:textSize="12sp"/>
+    <TextView
+        android:id="@+id/signalText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="No signal"
+        android:textSize="14sp"
+        android:textStyle="bold"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <Button
+            android:id="@+id/startButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Start Search"/>
+        <Button
+            android:id="@+id/stopButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Stop"/>
+    </LinearLayout>
+</LinearLayout>

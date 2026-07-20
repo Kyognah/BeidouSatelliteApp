@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Region Bypass Settings"
+            android:textSize="20sp"
+            android:textStyle="bold"/>
+
+        <Switch
+            android:id="@+id/bypassSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Enable Bypass"
+            android:layout_marginTop="12dp"/>
+        <Switch
+            android:id="@+id/testModeSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Test Mode (Simulate Satellite)"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Bypass Method (MeeTime methods):"
+            android:layout_marginTop="16dp"
+            android:textStyle="bold"/>
+
+        <RadioGroup
+            android:id="@+id/methodGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <RadioButton
+                android:id="@+id/radioSoftware"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Software Spoof (Locale+Prefs) - Default"
+                android:checked="true"/>
+            <RadioButton
+                android:id="@+id/radioReflection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="HMS Reflection (Root) - reflect RegionManager"/>
+            <RadioButton
+                android:id="@+id/radioAdb"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="ADB Settings (settings put global)"/>
+            <RadioButton
+                android:id="@+id/radioMagisk"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Magisk Props (setprop)"/>
+            <RadioButton
+                android:id="@+id/radioTest"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Test Mode Only"/>
+        </RadioGroup>
+
+        <Button
+            android:id="@+id/applyButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Apply Settings"
+            android:layout_marginTop="16dp"/>
+
+        <Button
+            android:id="@+id/clearLogsButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Clear Logs"/>
+
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Status..."
+            android:fontFamily="monospace"
+            android:textSize="12sp"
+            android:paddingTop="16dp"
+            android:background="#F0F0F0"/>
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="EMERGENCY SOS"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="#FF0000"
+        android:gravity="center"
+        android:paddingBottom="16dp"/>
+
+    <TextView
+        android:id="@+id/countdownText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Sending SOS in 10 seconds..."
+        android:textSize="20sp"
+        android:gravity="center"
+        android:padding="12dp"/>
+
+    <TextView
+        android:id="@+id/locationText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Getting location..."
+        android:fontFamily="monospace"
+        android:padding="8dp"
+        android:background="#EEEEEE"/>
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Status: waiting"
+        android:paddingTop="12dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="20dp">
+        <Button
+            android:id="@+id/cancelButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Cancel"/>
+        <Button
+            android:id="@+id/sendNowButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Send NOW"
+            android:backgroundTint="#FF0000"/>
+    </LinearLayout>
+</LinearLayout>
