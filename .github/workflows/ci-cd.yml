@@ -365,9 +365,11 @@ jobs:
           name: Beidou Satellite Messenger ${{ github.ref_name }}
           body_path: release_notes.md
           files: |
-            release-artifacts/app-release.aab
-            release-artifacts/app-release.apk
-            release-artifacts/mapping.txt
+            release-artifacts/bundle/release/*.aab
+            release-artifacts/apk/release/*.apk
+            release-artifacts/mapping/release/*.txt
+            release-artifacts/**/*.aab
+            release-artifacts/**/*.apk
           draft: false
           prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
           generate_release_notes: false
