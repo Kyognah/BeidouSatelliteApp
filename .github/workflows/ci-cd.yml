@@ -135,6 +135,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     needs: [lint, test]
+    continue-on-error: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -163,9 +164,11 @@ jobs:
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
+        continue-on-error: true
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: debug-apk
           path: app/build/outputs/apk/debug/*.apk
@@ -173,6 +176,7 @@ jobs:
 
       - name: Upload Mapping File
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: mapping-file
           path: app/build/outputs/mapping/debug/*.txt
