@@ -1,0 +1,82 @@
+# Gradle
+.gradle/
+build/
+out/
+/build/
+/out/
+/.gradle/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Log/OS files
+*.log
+.DS_Store
+
+# Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+.caches/
+
+# IntelliJ
+*.iml
+.idea/
+
+# Build outputs
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Generated files
+generated/
+ kapt/
+
+# Test reports
+test-results/
+
+# Coverage reports
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Keystore files
+*.jks
+*.keystore
+
+# Node modules (if any)
+node_modules/
+
+# Yarn
+yarn.lock
+
+# Mac
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE
+*.swp
+*.swo
+*~
+
+# Firebase
+google-services.json
+
+# Secrets
+*.properties
+secrets.gradle
+# Gradle wrapper & binaries (too large for git)
+gradle-8.4/
+gradle-8.4-bin.zip
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
