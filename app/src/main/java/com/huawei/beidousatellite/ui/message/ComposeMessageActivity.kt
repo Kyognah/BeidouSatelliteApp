@@ -1,6 +1,7 @@
 package com.huawei.beidousatellite.ui.message
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
@@ -10,11 +11,11 @@ import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.location.LocationServices
 import com.huawei.beidousatellite.R
-import com.huawei.beidousatellite.data.hms.HmsSmcManager
 import com.huawei.beidousatellite.data.model.MessagePriority
 import com.huawei.beidousatellite.data.model.MessageType
 import com.huawei.beidousatellite.data.model.SmcMessage
 import com.huawei.beidousatellite.data.repository.SatelliteRepository
+import com.huawei.beidousatellite.ui.satellite.SatelliteSearchActivity
 import com.huawei.beidousatellite.util.SatelliteLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -24,7 +25,6 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class ComposeMessageActivity : AppCompatActivity() {
 
-    @Inject lateinit var hmsManager: HmsSmcManager
     @Inject lateinit var repository: SatelliteRepository
     @Inject lateinit var logger: SatelliteLogger
 
@@ -53,10 +53,9 @@ class ComposeMessageActivity : AppCompatActivity() {
         statusText = findViewById(R.id.statusText)
         charCountText = findViewById(R.id.charCountText)
 
-        // Default recipient - user asked for specific number
-        recipientInput.setText("+989121234567") // example IR number, user can change
+        recipientInput.setText("+989121234567")
+        contentInput.setText("سلام via BeiDou! Test ${System.currentTimeMillis()} - این پیام از طریق اپ Beidou Satellite Messenger ارسال شده")
 
-        // Priority spinner
         val priorities = MessagePriority.values().map { it.name }
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, priorities)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -64,11 +63,11 @@ class ComposeMessageActivity : AppCompatActivity() {
         prioritySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: android.view.View?, pos: Int, id: Long) {
                 selectedPriority = MessagePriority.values()[pos]
+                logger.d("Compose", "Priority selected $selectedPriority")
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        // Char count - BDS-3 max 140 chars (Chinese) / 78 chars latin? For test use 140
         contentInput.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -80,25 +79,24 @@ class ComposeMessageActivity : AppCompatActivity() {
         })
 
         includeLocationCheck.setOnCheckedChangeListener { _, isChecked ->
+            logger.d("Compose", "Include location $isChecked")
             if (isChecked) getLocation() else locationText.text = "Location not included"
         }
 
         sendButton.setOnClickListener {
-            sendMessage()
+            logger.i("Compose", "Send button clicked - will go to satellite search flow")
+            prepareAndGoToSatelliteSearch()
         }
 
-        // Pre-fill content for test
-        contentInput.setText("سلام via BeiDou! Test ${System.currentTimeMillis()}")
-
         getLocation()
-        observeHms()
-
-        statusText.text = "Ready. Test Mode: ${hmsManager.connectionState.value} Capability searchMode=${hmsManager.capability.value.searchMode}"
+        statusText.text = "مرحله 1: شماره و پیام را وارد کن\nمرحله 2: دکمه ارسال را بزن تا به صفحه جستجوی ماهواره بروی\nمرحله 3: گوشی را به سمت ماهواره بگیر تا وقتی TRACKING شد پیام اتوماتیک ارسال شود\n\nTest Mode روشن باشد شبیه سازی میشود، خاموش باشد روی هواوی واقعی via satellite میرود"
     }
 
     private fun getLocation() {
+        logger.d("Compose", "getLocation called")
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             locationText.text = "Location permission needed"
+            logger.w("Compose", "Location permission not granted")
             return
         }
         val fused = LocationServices.getFusedLocationProviderClient(this)
@@ -106,41 +104,38 @@ class ComposeMessageActivity : AppCompatActivity() {
             currentLocation = loc
             if (loc != null) {
                 locationText.text = "📍 Lat: ${loc.latitude}\n📍 Lon: ${loc.longitude}\n📈 Alt: ${loc.altitude}m Acc: ${loc.accuracy}m"
+                logger.i("Compose", "Location obtained: ${loc.latitude},${loc.longitude}")
             } else {
                 locationText.text = "Location unavailable - will send without location"
+                logger.w("Compose", "Location unavailable")
             }
         }.addOnFailureListener {
             locationText.text = "Location failed: ${it.message}"
+            logger.e("Compose", "Location failed", it)
         }
     }
 
-    private fun observeHms() {
-        lifecycleScope.launch {
-            hmsManager.searchStatus.collect { status ->
-                statusText.text = "Search: $status | Conn: ${hmsManager.connectionState.value} | Mode: ${hmsManager.capability.value.searchMode}"
-            }
-        }
-    }
-
-    private fun sendMessage() {
+    private fun prepareAndGoToSatelliteSearch() {
         val recipient = recipientInput.text.toString().trim()
         val content = contentInput.text.toString().trim()
 
+        logger.i("Compose", "Preparing message to $recipient content=$content priority=$selectedPriority")
+
         if (recipient.isEmpty()) {
             Toast.makeText(this, "شماره گیرنده را وارد کن", Toast.LENGTH_SHORT).show()
+            logger.w("Compose", "Recipient empty")
             return
         }
         if (content.isEmpty()) {
             Toast.makeText(this, "متن پیام خالی است", Toast.LENGTH_SHORT).show()
+            logger.w("Compose", "Content empty")
             return
         }
         if (content.length > 140) {
-            Toast.makeText(this, "پیام بیشتر از 140 کاراکتر است - BeiDou limit", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "پیام بیشتر از 140 کاراکتر است", Toast.LENGTH_LONG).show()
+            logger.w("Compose", "Content too long ${content.length}")
             return
         }
-
-        // Validate phone? Basic check
-        // Allow +xxx numbers
 
         val message = SmcMessage(
             senderNumber = "self",
@@ -154,28 +149,25 @@ class ComposeMessageActivity : AppCompatActivity() {
             utcTime = Instant.now()
         )
 
-        sendButton.isEnabled = false
-        statusText.text = "⏳ Sending to $recipient...\nStatus: QUEUED"
-
+        logger.i("Compose", "Saving message ${message.messageId} as PENDING and launching satellite search")
         lifecycleScope.launch {
-            repository.saveMessage(message.copy(status = com.huawei.beidousatellite.data.model.MessageStatus.QUEUED))
-        }
+            try {
+                repository.saveMessage(message.copy(status = com.huawei.beidousatellite.data.model.MessageStatus.PENDING))
+                logger.message("Saved PENDING message ${message.messageId} to $recipient: $content")
 
-        logger.message("User sending to $recipient: $content")
-
-        hmsManager.sendMessage(message) { success ->
-            runOnUiThread {
-                sendButton.isEnabled = true
-                if (success) {
-                    statusText.text = "✅ SENT via BeiDou (simulated in test mode)!\nTo: $recipient\nContent: $content\nPriority: $selectedPriority\n\nNote: In TEST MODE, message is simulated locally and saved to DB. On real Huawei hardware with bypass, it would go via satellite."
-                    lifecycleScope.launch {
-                        repository.saveMessage(message.copy(status = com.huawei.beidousatellite.data.model.MessageStatus.SENT, sendTime = Instant.now()))
-                    }
-                    Toast.makeText(this, "پیام ارسال شد (شبیه سازی)", Toast.LENGTH_LONG).show()
-                } else {
-                    statusText.text = "❌ Failed to send to $recipient"
-                    Toast.makeText(this, "ارسال ناموفق", Toast.LENGTH_SHORT).show()
-                }
+                // Go to satellite search with messageId - new flow as user requested
+                val intent = Intent(this@ComposeMessageActivity, SatelliteSearchActivity::class.java)
+                intent.putExtra("messageId", message.messageId)
+                intent.putExtra("recipient", recipient)
+                intent.putExtra("content", content)
+                intent.putExtra("priority", selectedPriority.name)
+                intent.putExtra("latitude", message.latitude ?: 0.0)
+                intent.putExtra("longitude", message.longitude ?: 0.0)
+                startActivity(intent)
+                logger.i("Compose", "Launched SatelliteSearchActivity with messageId ${message.messageId}")
+            } catch (e: Throwable) {
+                logger.e("Compose", "Failed to save and launch search", e)
+                Toast.makeText(this@ComposeMessageActivity, "Failed: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }

@@ -3,7 +3,18 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="8dp">
+
+    <TextView
+        android:id="@+id/messageInfoText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="No pending message"
+        android:fontFamily="monospace"
+        android:textSize="12sp"
+        android:background="#E3F2FD"
+        android:padding="8dp"
+        android:visibility="gone"/>
 
     <com.huawei.beidousatellite.ui.satellite.CompassView
         android:id="@+id/compassView"
@@ -16,21 +27,21 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Status: IDLE"
-        android:textSize="14sp"
+        android:textSize="12sp"
         android:fontFamily="monospace"
-        android:paddingTop="8dp"/>
+        android:paddingTop="4dp"/>
     <TextView
         android:id="@+id/calibrationText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Calibration: ..."
-        android:textSize="12sp"/>
+        android:textSize="11sp"/>
     <TextView
         android:id="@+id/signalText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="No signal"
-        android:textSize="14sp"
+        android:textSize="12sp"
         android:textStyle="bold"/>
 
     <LinearLayout
@@ -50,4 +61,12 @@
             android:layout_weight="1"
             android:text="Stop"/>
     </LinearLayout>
+
+    <Button
+        android:id="@+id/sendButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Send Message (needs message)"
+        android:backgroundTint="#4CAF50"
+        android:enabled="false"/>
 </LinearLayout>

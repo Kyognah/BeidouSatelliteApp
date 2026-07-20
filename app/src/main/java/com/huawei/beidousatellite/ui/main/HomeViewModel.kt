@@ -34,43 +34,103 @@ class HomeViewModel @Inject constructor(
     val messageCount: StateFlow<Int> = _messageCount
 
     init {
+        logger.i("HomeVM", "=== HomeViewModel init started ===")
+        logger.i("HomeVM", "Bypass enabled sync=${regionManager.isBypassEnabledSync()} method=${regionManager.getBypassMethodSync()} testMode=${regionManager.isTestModeSync()} supported=${regionManager.isSatelliteSupported()}")
         viewModelScope.launch {
-            repository.getAllMessagesFlow().collect { list ->
-                _messageCount.value = list.size
+            try {
+                repository.getAllMessagesFlow().collect { list ->
+                    _messageCount.value = list.size
+                    logger.d("HomeVM", "Message count: ${list.size}")
+                }
+            } catch (e: Throwable) {
+                logger.e("HomeVM", "Collect messages failed", e)
             }
         }
-        hmsManager.connect()
+        viewModelScope.launch {
+            try {
+                logger.i("HomeVM", "Calling hmsManager.connect() from init")
+                hmsManager.connect()
+                logger.i("HomeVM", "hmsManager.connect() finished, connectionState=${hmsManager.connectionState.value}")
+            } catch (e: Throwable) {
+                logger.e("HomeVM", "connect() crashed in init - should never happen now", e)
+            }
+        }
+        logger.i("HomeVM", "=== init finished ===")
     }
 
     fun setBypass(enabled: Boolean, method: BypassMethod = BypassMethod.SOFTWARE_SPOOF) {
         viewModelScope.launch {
-            regionManager.setBypassEnabled(enabled, method)
-            if (enabled) hmsManager.connect() else hmsManager.disconnect()
+            try {
+                logger.i("HomeVM", "setBypass enabled=$enabled method=$method")
+                regionManager.setBypassEnabled(enabled, method)
+                if (enabled) {
+                    logger.i("HomeVM", "Bypass enabled, connecting HMS")
+                    hmsManager.connect()
+                } else {
+                    logger.i("HomeVM", "Bypass disabled, disconnecting")
+                    hmsManager.disconnect()
+                }
+            } catch (e: Throwable) {
+                logger.e("HomeVM", "setBypass failed", e)
+            }
         }
     }
 
     fun setTestMode(enabled: Boolean) {
         viewModelScope.launch {
-            regionManager.setTestMode(enabled)
-            logger.i("HomeVM", "TestMode $enabled")
-            if (enabled) hmsManager.connect() else hmsManager.disconnect()
+            try {
+                logger.i("HomeVM", "setTestMode $enabled")
+                regionManager.setTestMode(enabled)
+                if (enabled) {
+                    hmsManager.connect()
+                } else {
+                    hmsManager.disconnect()
+                }
+            } catch (e: Throwable) {
+                logger.e("HomeVM", "setTestMode failed", e)
+            }
         }
     }
 
     fun saveTestModeSync(context: Context, enabled: Boolean) {
-        context.getSharedPreferences("beidou_region", Context.MODE_PRIVATE)
-            .edit().putBoolean("test_mode_prefs", enabled).apply()
-        setTestMode(enabled)
+        try {
+            logger.i("HomeVM", "saveTestModeSync $enabled")
+            context.getSharedPreferences("beidou_region", Context.MODE_PRIVATE)
+                .edit().putBoolean("test_mode_prefs", enabled).apply()
+            setTestMode(enabled)
+        } catch (e: Throwable) {
+            logger.e("HomeVM", "saveTestModeSync failed", e)
+        }
     }
 
     suspend fun autoDetect(): List<BypassAttempt> {
-        return regionManager.autoDetectAndApply()
+        return try {
+            logger.i("HomeVM", "autoDetect called")
+            val res = regionManager.autoDetectAndApply()
+            logger.i("HomeVM", "autoDetect results: ${res.size}")
+            res
+        } catch (e: Throwable) {
+            logger.e("HomeVM", "autoDetect failed", e)
+            emptyList()
+        }
     }
 
-    fun getStatusText(): String = regionManager.getBypassStatus()
+    fun getStatusText(): String {
+        return try {
+            regionManager.getBypassStatus()
+        } catch (e: Throwable) {
+            logger.e("HomeVM", "getStatusText failed", e)
+            "Error getting status: ${e.message}"
+        }
+    }
 
     override fun onCleared() {
+        try {
+            logger.i("HomeVM", "onCleared, disconnecting")
+            hmsManager.disconnect()
+        } catch (e: Throwable) {
+            logger.e("HomeVM", "onCleared disconnect failed", e)
+        }
         super.onCleared()
-        hmsManager.disconnect()
     }
 }
