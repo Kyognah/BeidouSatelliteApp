@@ -218,14 +218,17 @@ jobs:
 
       - name: Decode Keystore
         id: keystore
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
-        uses: timheuer/base64-to-file@v1.2
-        with:
-          fileName: 'release.keystore'
-          encodedString: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+            echo "filePath=release.keystore" >> $GITHUB_OUTPUT
+          else
+            echo "KEYSTORE_BASE64 secret not set, skipping keystore decode"
+            echo "filePath=" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build Release AAB
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: ${{ secrets.KEYSTORE_BASE64 != '' && steps.keystore.outputs.filePath != '' }}
         run: |
           ./gradlew bundleRelease \
             -Pandroid.injected.signing.store.file=${{ steps.keystore.outputs.filePath }} \
