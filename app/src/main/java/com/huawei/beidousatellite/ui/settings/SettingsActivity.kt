@@ -1,6 +1,7 @@
 package com.huawei.beidousatellite.ui.settings
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.RadioGroup
@@ -28,6 +29,8 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var statusText: TextView
     private lateinit var applyButton: Button
     private lateinit var clearLogsButton: Button
+    private lateinit var viewLogsButton: Button
+    private lateinit var autoDetectButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +42,8 @@ class SettingsActivity : AppCompatActivity() {
         statusText = findViewById(R.id.statusText)
         applyButton = findViewById(R.id.applyButton)
         clearLogsButton = findViewById(R.id.clearLogsButton)
+        viewLogsButton = findViewById(R.id.viewLogsButton)
+        autoDetectButton = findViewById(R.id.autoDetectButton)
 
         lifecycleScope.launch {
             regionManager.bypassEnabledFlow.collect { enabled ->
@@ -86,20 +91,30 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
-        clearLogsButton.setOnClickListener {
-            // Clear logs dir
-            try {
-                val base = getExternalFilesDir(null)
-                statusText.text = "Logs cleared (simulated)"
-            } catch (e: Exception) {
-                statusText.text = "Failed: ${e.message}"
+        autoDetectButton.setOnClickListener {
+            autoDetectButton.isEnabled = false
+            autoDetectButton.text = "Detecting..."
+            lifecycleScope.launch {
+                val results = regionManager.autoDetectAndApply()
+                val msg = results.joinToString("\n\n") { "Method: ${it.method}\nSuccess: ${it.success}\nInfo: ${it.message}" }
+                statusText.text = "Auto-Detect Results:\n\n$msg\n\n" + regionManager.getBypassStatus()
+                autoDetectButton.isEnabled = true
+                autoDetectButton.text = "🔍 Auto-Detect Best Method"
             }
+        }
+
+        viewLogsButton.setOnClickListener {
+            startActivity(Intent(this, LogViewerActivity::class.java))
+        }
+
+        clearLogsButton.setOnClickListener {
+            statusText.text = "Log path: ${logger.getLogPath()}\n\nLogs are in app-specific external storage. Use Files app to browse."
         }
 
         updateStatus()
     }
 
     private fun updateStatus() {
-        statusText.text = regionManager.getBypassStatus()
+        statusText.text = regionManager.getBypassStatus() + "\n\nLog path:\n${logger.getLogPath()}\n\nTap View Logs to see inside app."
     }
 }

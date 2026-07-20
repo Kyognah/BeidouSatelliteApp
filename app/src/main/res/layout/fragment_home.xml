@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:padding="12dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -11,76 +11,107 @@
         android:orientation="vertical">
 
         <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/titleText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="BeiDou Satellite Messenger"
-            android:textSize="22sp"
+            android:text="🛰️ BeiDou Satellite Messenger v1.2.0"
+            android:textSize="20sp"
             android:textStyle="bold"
             android:gravity="center"
-            android:paddingBottom="16dp"/>
+            android:paddingBottom="8dp"/>
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:cardElevation="4dp">
+            android:layout_marginBottom="8dp"
+            app:cardElevation="4dp"
+            app:strokeColor="#6200EE"
+            app:strokeWidth="1dp">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="12dp">
-                <com.google.android.material.textview.MaterialTextView
+                android:padding="10dp">
+                <TextView
                     android:id="@+id/statusText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Status loading..."
-                    android:textSize="12sp"
+                    android:textSize="11sp"
                     android:fontFamily="monospace"/>
-                <com.google.android.material.textview.MaterialTextView
+                <TextView
                     android:id="@+id/signalText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="No signal"
-                    android:paddingTop="8dp"
-                    android:textColor="@color/purple_500"/>
+                    android:text="No signal - Enable Test Mode"
+                    android:paddingTop="6dp"
+                    android:textColor="#6200EE"
+                    android:textStyle="bold"
+                    android:textSize="12sp"/>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/bypassSwitch"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Enable Region Bypass (CN Spoof)"/>
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/testModeSwitch"
+            android:orientation="horizontal">
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/bypassSwitch"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Bypass CN"
+                android:textSize="12sp"/>
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/testModeSwitch"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Test Mode"
+                android:textSize="12sp"/>
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/autoDetectButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Enable Test Mode (Simulate Satellite)"
-            android:layout_marginBottom="16dp"/>
+            android:text="🔍 Auto-Detect Best Bypass Method (MeeTime)"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/sendMessageButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="✉️ ارسال پیام به شماره خاص"
+            style="@style/Widget.Material3.Button"
+            app:backgroundTint="#2196F3"/>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/searchButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Satellite Search &amp; Compass"
+            android:text="📡 Satellite Search &amp; Compass"
             style="@style/Widget.Material3.Button"/>
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/sosButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Emergency SOS"
+            android:text="🆘 Emergency SOS"
             style="@style/Widget.Material3.Button"
-            app:backgroundTint="#FF0000"/>
+            app:backgroundTint="#F44336"/>
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/historyButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Message History"/>
+            android:text="📜 Message History"/>
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/settingsButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Settings - Region Bypass"/>
+            android:text="⚙️ Settings - Region &amp; Logs"/>
     </LinearLayout>
 </ScrollView>

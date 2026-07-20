@@ -21,6 +21,7 @@ import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.sin
 import kotlin.random.Random
 
 @Singleton
@@ -31,8 +32,6 @@ class HmsSmcManager @Inject constructor(
 ) {
     companion object {
         private const val TAG = "HmsSmcManager"
-        // Based on MeeTime Service analysis: com.huawei.hwvoipservice.compatible.TransferDataService and Caas
-        // Real SMC service from HMS: com.huawei.hms.rsmc - satellite messaging
         private const val HMS_SMC_PACKAGE = "com.huawei.hms"
         private const val HMS_SMC_SERVICE = "com.huawei.hms.rsmc.service.SmcService"
         private const val MEETIME_SERVICE_PACKAGE = "com.huawei.hwvoipservice"
@@ -68,14 +67,15 @@ class HmsSmcManager @Inject constructor(
     private var serviceMessenger: Messenger? = null
     private var isBound = false
     private var testModeJob: kotlinx.coroutines.Job? = null
+    private var orbitAngle = 0.0
 
     private val incomingMessenger = Messenger(IncomingHandler())
 
     inner class IncomingHandler : Handler(Looper.getMainLooper()) {
         override fun handleMessage(msg: Message) {
-            logger.hms("Incoming message what=${msg.what} arg1=${msg.arg1} arg2=${msg.arg2}")
+            logger.hms("Incoming what=${msg.what} arg1=${msg.arg1}")
             when (msg.what) {
-                1 -> { // search status
+                1 -> {
                     val status = msg.arg1
                     _searchStatus.value = when (status) {
                         0 -> SatelliteSearchStatus.IDLE
@@ -85,7 +85,7 @@ class HmsSmcManager @Inject constructor(
                         else -> SatelliteSearchStatus.ERROR
                     }
                 }
-                2 -> { // signal info
+                2 -> {
                     val bundle = msg.data
                     val id = bundle.getInt("satelliteId", Random.nextInt(1, 63))
                     val snr = bundle.getDouble("snr", Random.nextDouble(15.0, 40.0))
@@ -98,7 +98,7 @@ class HmsSmcManager @Inject constructor(
                         azimuthDeg = azimuth
                     )
                 }
-                3 -> { // message ack
+                3 -> {
                     val msgId = msg.data.getString("messageId")
                     logger.message("ACK for $msgId")
                 }
@@ -112,7 +112,6 @@ class HmsSmcManager @Inject constructor(
             isBound = true
             _connectionState.value = true
             logger.hms("SMC service connected $name")
-            // Register client
             try {
                 val msg = Message.obtain(null, 0)
                 msg.replyTo = incomingMessenger
@@ -120,7 +119,6 @@ class HmsSmcManager @Inject constructor(
             } catch (e: Exception) {
                 logger.e(TAG, "Register client failed", e)
             }
-            // Query capability
             queryCapability()
         }
 
@@ -133,15 +131,11 @@ class HmsSmcManager @Inject constructor(
     }
 
     fun connect() {
-        if (regionManager.isBypassEnabledSync().not() && !isTestMode()) {
-            logger.w(TAG, "Bypass not enabled and not test mode, may fail on non-CN region")
-        }
-
         if (isTestMode()) {
             logger.i(TAG, "Test mode - simulating connection")
             _connectionState.value = true
             _capability.value = SmcCapability(
-                searchMode = 2, // direct send
+                searchMode = 2,
                 rcvMsgSupport = 1,
                 sendVoiceSupport = 0,
                 sendImageSupport = 0,
@@ -157,19 +151,17 @@ class HmsSmcManager @Inject constructor(
         }
 
         try {
-            // Try HMS SMC service
             val intent = Intent()
             intent.component = ComponentName(HMS_SMC_PACKAGE, HMS_SMC_SERVICE)
             val bound = context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
             logger.hms("Bind HMS SMC $bound")
             if (!bound) {
-                // Fallback to MeeTime service
                 val meetimeIntent = Intent(MEETIME_SERVICE_ACTION)
                 meetimeIntent.setPackage(MEETIME_SERVICE_PACKAGE)
                 val bound2 = context.bindService(meetimeIntent, serviceConnection, Context.BIND_AUTO_CREATE)
                 logger.hms("Bind MeeTime SMC $bound2")
                 if (!bound2) {
-                    logger.w(TAG, "Both SMC services bind failed, entering test mode fallback")
+                    logger.w(TAG, "Both SMC bind failed, entering test mode fallback")
                     _connectionState.value = false
                 }
             }
@@ -193,10 +185,9 @@ class HmsSmcManager @Inject constructor(
     }
 
     private fun isTestMode(): Boolean {
-        // Check datastore via region manager sync prefs
         return try {
             val prefs = context.getSharedPreferences("beidou_region", Context.MODE_PRIVATE)
-            prefs.getBoolean("test_mode_prefs", false) || prefs.getBoolean("bypass_enabled", false).not().not() && false
+            prefs.getBoolean("test_mode_prefs", false)
         } catch (_: Exception) { false }
     }
 
@@ -215,22 +206,21 @@ class HmsSmcManager @Inject constructor(
         logger.i(TAG, "startSatelliteSearch")
         _searchStatus.value = SatelliteSearchStatus.SEARCHING
         if (isTestMode() || regionManager.isBypassEnabledSync()) {
-            if (isTestMode()) {
-                startTestModeSimulation()
-            }
-            // In test mode, simulate acquiring after 3 sec
             CoroutineScope(Dispatchers.Main).launch {
-                delay(3000)
+                delay(1000)
+                _searchStatus.value = SatelliteSearchStatus.SEARCHING
+                delay(2000)
                 _searchStatus.value = SatelliteSearchStatus.ACQUIRING
                 delay(2000)
                 _searchStatus.value = SatelliteSearchStatus.TRACKING
             }
+            if (isTestMode()) startTestModeSimulation()
             return
         }
         try {
             val msg = Message.obtain(null, 1002)
             msg.replyTo = incomingMessenger
-            msg.arg1 = 1 // start
+            msg.arg1 = 1
             serviceMessenger?.send(msg)
         } catch (e: Exception) {
             logger.e(TAG, "startSearch failed", e)
@@ -244,7 +234,7 @@ class HmsSmcManager @Inject constructor(
         if (isTestMode()) return
         try {
             val msg = Message.obtain(null, 1002)
-            msg.arg1 = 0 // stop
+            msg.arg1 = 0
             msg.replyTo = incomingMessenger
             serviceMessenger?.send(msg)
         } catch (e: Exception) {
@@ -255,7 +245,6 @@ class HmsSmcManager @Inject constructor(
     fun sendMessage(message: SmcMessage, callback: (Boolean) -> Unit = {}) {
         logger.message("Sending ${message.content} to ${message.recipientNumber}")
         val updated = message.copy(
-            messageId = message.messageId,
             sendTime = Instant.now(),
             status = MessageStatus.SENDING
         )
@@ -263,10 +252,10 @@ class HmsSmcManager @Inject constructor(
 
         if (isTestMode()) {
             CoroutineScope(Dispatchers.Main).launch {
-                delay(2000)
+                delay(1500)
                 val sent = updated.copy(status = MessageStatus.SENT)
                 _messages.value = _messages.value.map { if (it.messageId == sent.messageId) sent else it }
-                delay(1000)
+                delay(1200)
                 val delivered = sent.copy(status = MessageStatus.DELIVERED)
                 _messages.value = _messages.value.map { if (it.messageId == delivered.messageId) delivered else it }
                 callback(true)
@@ -313,20 +302,31 @@ class HmsSmcManager @Inject constructor(
         testModeJob?.cancel()
         testModeJob = CoroutineScope(Dispatchers.Default).launch {
             var azimuth = 0.0
-            var elevation = 20.0
+            var elevation = 30.0
+            var snr = 25.0
+            var prn = Random.nextInt(1, 63)
+            var orbit = 0.0
             while (true) {
-                azimuth = (azimuth + Random.nextDouble(-5.0, 5.0)).mod(360.0)
-                elevation = (elevation + Random.nextDouble(-1.0, 1.0)).coerceIn(10.0, 90.0)
-                val snr = Random.nextDouble(20.0, 38.0)
-                val prn = Random.nextInt(1, 63)
+                // Make satellite orbit around user for visible movement
+                orbit += 3.0 // 3 degrees per second
+                if (orbit >= 360) {
+                    orbit = 0.0
+                    prn = Random.nextInt(1, 63) // change satellite occasionally
+                }
+                azimuth = orbit
+                // Elevation oscillates like satellite pass: 20 -> 80 -> 20
+                elevation = 20 + 60 * (0.5 + 0.5 * sin(Math.toRadians(orbit * 2)))
+                // SNR varies with elevation - higher elevation = better SNR
+                snr = 20 + (elevation / 90.0) * 18 + Random.nextDouble(-2.0, 2.0)
+
                 _signalInfo.value = SatelliteSignalInfo(
                     satelliteId = prn,
                     snrDb = snr,
                     elevationDeg = elevation,
                     azimuthDeg = azimuth,
-                    dopplerHz = Random.nextDouble(-1000.0, 1000.0)
+                    dopplerHz = Random.nextDouble(-800.0, 800.0)
                 )
-                delay(1000)
+                delay(700) // update 700ms for smooth movement
             }
         }
     }

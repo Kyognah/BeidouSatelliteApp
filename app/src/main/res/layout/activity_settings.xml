@@ -11,8 +11,8 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Region Bypass Settings"
-            android:textSize="20sp"
+            android:text="⚙️ Region Bypass Settings (MeeTime Methods)"
+            android:textSize="18sp"
             android:textStyle="bold"/>
 
         <Switch
@@ -25,12 +25,12 @@
             android:id="@+id/testModeSwitch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Test Mode (Simulate Satellite)"/>
+            android:text="Test Mode (Simulate Satellite) - Recommended for non-Huawei phones"/>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Bypass Method (MeeTime methods):"
+            android:text="Bypass Method (MeeTime reverse engineering):"
             android:layout_marginTop="16dp"
             android:textStyle="bold"/>
 
@@ -42,7 +42,7 @@
                 android:id="@+id/radioSoftware"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Software Spoof (Locale+Prefs) - Default"
+                android:text="Software Spoof (Locale+Prefs) - Default, no root"
                 android:checked="true"/>
             <RadioButton
                 android:id="@+id/radioReflection"
@@ -58,7 +58,7 @@
                 android:id="@+id/radioMagisk"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Magisk Props (setprop)"/>
+                android:text="Magisk Props (setprop via su)"/>
             <RadioButton
                 android:id="@+id/radioTest"
                 android:layout_width="match_parent"
@@ -67,17 +67,31 @@
         </RadioGroup>
 
         <Button
+            android:id="@+id/autoDetectButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🔍 Auto-Detect Best Bypass Method"
+            android:layout_marginTop="8dp"/>
+
+        <Button
             android:id="@+id/applyButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Apply Settings"
-            android:layout_marginTop="16dp"/>
+            android:layout_marginTop="8dp"/>
+
+        <Button
+            android:id="@+id/viewLogsButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📄 View Logs"
+            android:layout_marginTop="8dp"/>
 
         <Button
             android:id="@+id/clearLogsButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Clear Logs"/>
+            android:text="Clear Logs Info"/>
 
         <TextView
             android:id="@+id/statusText"
@@ -85,8 +99,9 @@
             android:layout_height="wrap_content"
             android:text="Status..."
             android:fontFamily="monospace"
-            android:textSize="12sp"
-            android:paddingTop="16dp"
-            android:background="#F0F0F0"/>
+            android:textSize="11sp"
+            android:paddingTop="12dp"
+            android:background="#F0F0F0"
+            android:padding="8dp"/>
     </LinearLayout>
 </ScrollView>

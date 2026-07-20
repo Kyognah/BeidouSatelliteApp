@@ -1,6 +1,7 @@
 package com.huawei.beidousatellite.ui.main
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -14,8 +15,10 @@ import androidx.lifecycle.lifecycleScope
 import com.huawei.beidousatellite.R
 import com.huawei.beidousatellite.data.region.BypassMethod
 import com.huawei.beidousatellite.ui.emergency.EmergencySosActivity
+import com.huawei.beidousatellite.ui.message.ComposeMessageActivity
 import com.huawei.beidousatellite.ui.message.MessageHistoryActivity
 import com.huawei.beidousatellite.ui.satellite.SatelliteSearchActivity
+import com.huawei.beidousatellite.ui.settings.LogViewerActivity
 import com.huawei.beidousatellite.ui.settings.SettingsActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.switchmaterial.SwitchMaterial
@@ -35,6 +38,8 @@ class HomeFragment : Fragment() {
     private lateinit var sosButton: MaterialButton
     private lateinit var historyButton: MaterialButton
     private lateinit var settingsButton: MaterialButton
+    private lateinit var sendMessageButton: MaterialButton
+    private lateinit var autoDetectButton: MaterialButton
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         return inflater.inflate(R.layout.fragment_home, container, false)
@@ -51,8 +56,9 @@ class HomeFragment : Fragment() {
         sosButton = view.findViewById(R.id.sosButton)
         historyButton = view.findViewById(R.id.historyButton)
         settingsButton = view.findViewById(R.id.settingsButton)
+        sendMessageButton = view.findViewById(R.id.sendMessageButton)
+        autoDetectButton = view.findViewById(R.id.autoDetectButton)
 
-        // Permissions
         requestPerms()
 
         searchButton.setOnClickListener {
@@ -65,7 +71,36 @@ class HomeFragment : Fragment() {
             startActivity(Intent(requireContext(), MessageHistoryActivity::class.java))
         }
         settingsButton.setOnClickListener {
-            startActivity(Intent(requireContext(), SettingsActivity::class.java))
+            // Show chooser for settings vs logs
+            val options = arrayOf("Settings - Bypass", "View Logs")
+            AlertDialog.Builder(requireContext())
+                .setTitle("Settings")
+                .setItems(options) { _, which ->
+                    when (which) {
+                        0 -> startActivity(Intent(requireContext(), SettingsActivity::class.java))
+                        1 -> startActivity(Intent(requireContext(), LogViewerActivity::class.java))
+                    }
+                }.show()
+        }
+        sendMessageButton.setOnClickListener {
+            startActivity(Intent(requireContext(), ComposeMessageActivity::class.java))
+        }
+
+        autoDetectButton.setOnClickListener {
+            autoDetectButton.isEnabled = false
+            autoDetectButton.text = "Detecting..."
+            lifecycleScope.launch {
+                val results = viewModel.autoDetect()
+                val message = results.joinToString("\n\n") { "Method: ${it.method}\nSuccess: ${it.success}\nInfo: ${it.message}" }
+                AlertDialog.Builder(requireContext())
+                    .setTitle("Auto-Detect Results (MeeTime methods)")
+                    .setMessage(message + "\n\n" + viewModel.getStatusText())
+                    .setPositiveButton("OK") { _, _ -> }
+                    .show()
+                autoDetectButton.isEnabled = true
+                autoDetectButton.text = "🔍 Auto-Detect Best Bypass Method"
+                updateStatus()
+            }
         }
 
         bypassSwitch.setOnCheckedChangeListener { _, isChecked ->
@@ -81,13 +116,15 @@ class HomeFragment : Fragment() {
         lifecycleScope.launch {
             viewModel.signalInfo.collect { info ->
                 if (info != null) {
-                    signalText.text = "PRN ${info.satelliteId} SNR %.1f dB El %.1f Az %.1f Q=%s".format(info.snrDb, info.elevationDeg, info.azimuthDeg, info.signalQuality)
+                    signalText.text = "📡 PRN ${info.satelliteId} SNR %.1f dB El %.1f° Az %.1f° Q=%s Usable=%s".format(info.snrDb, info.elevationDeg, info.azimuthDeg, info.signalQuality, info.isUsable)
+                } else {
+                    signalText.text = "No signal - Enable Test Mode for simulation"
                 }
             }
         }
         lifecycleScope.launch {
             viewModel.searchStatus.collect { status ->
-                statusText.text = viewModel.getStatusText() + "\nSearch: $status\nConn: ${viewModel.connectionState.value} Cap: mode=${viewModel.capability.value.searchMode}"
+                updateStatus()
             }
         }
         lifecycleScope.launch {
@@ -105,8 +142,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateStatus() {
-        val bypass = view?.findViewById<SwitchMaterial>(R.id.bypassSwitch)?.isChecked ?: false
-        statusText.text = viewModel.getStatusText()
+        statusText.text = viewModel.getStatusText() + "\n\n💡 Tip: For sending to specific number, use 'ارسال پیام' button. Enable Test Mode to simulate satellite without Huawei hardware."
     }
 
     private fun requestPerms() {

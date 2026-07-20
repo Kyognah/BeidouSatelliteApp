@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="✉️ ارسال پیام BeiDou به شماره خاص"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:paddingBottom="12dp"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="شماره گیرنده - مثال: +989123456789 یا +8613..."
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/recipientInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="phone"
+                android:text="+98912"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="متن پیام - حداکثر 140 کاراکتر (محدودیت BeiDou)"
+            android:layout_marginTop="12dp"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/contentInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minLines="3"
+                android:gravity="top|start"
+                android:inputType="textMultiLine"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:id="@+id/charCountText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="0/140"
+            android:textSize="12sp"
+            android:gravity="end"
+            android:paddingTop="4dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Priority:"
+            android:layout_marginTop="12dp"
+            android:textStyle="bold"/>
+
+        <Spinner
+            android:id="@+id/prioritySpinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <CheckBox
+            android:id="@+id/includeLocationCheck"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📍 Include location in message"
+            android:checked="true"
+            android:layout_marginTop="8dp"/>
+
+        <TextView
+            android:id="@+id/locationText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Getting location..."
+            android:fontFamily="monospace"
+            android:textSize="12sp"
+            android:background="#EEEEEE"
+            android:padding="8dp"
+            android:layout_marginTop="4dp"/>
+
+        <Button
+            android:id="@+id/sendButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🚀 ارسال از طریق BeiDou (Test Mode = شبیه سازی)"
+            android:layout_marginTop="16dp"
+            style="@style/Widget.Material3.Button"/>
+
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ready"
+            android:fontFamily="monospace"
+            android:textSize="12sp"
+            android:padding="12dp"
+            android:background="#F5F5F5"
+            android:layout_marginTop="12dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="نکته: در حالت Test Mode پیام واقعا از طریق ماهواره ارسال نمیشود، فقط شبیه سازی و ذخیره در دیتابیس محلی است. روی دستگاه هواوی واقعی (Pura 70, Mate 60) با Bypass فعال، پیام واقعا via BeiDou ارسال میشود."
+            android:textSize="11sp"
+            android:textColor="#666666"
+            android:layout_marginTop="12dp"/>
+    </LinearLayout>
+</ScrollView>

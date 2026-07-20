@@ -1,8 +1,10 @@
 package com.huawei.beidousatellite.ui.main
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.huawei.beidousatellite.data.hms.HmsSmcManager
+import com.huawei.beidousatellite.data.region.BypassAttempt
 import com.huawei.beidousatellite.data.region.BypassMethod
 import com.huawei.beidousatellite.data.region.RegionBypassManager
 import com.huawei.beidousatellite.data.repository.SatelliteRepository
@@ -50,21 +52,19 @@ class HomeViewModel @Inject constructor(
     fun setTestMode(enabled: Boolean) {
         viewModelScope.launch {
             regionManager.setTestMode(enabled)
-            val prefs = regionManager // need to update sync pref too
-            // Update sync pref manually via shared prefs for HmsSmcManager quick check
-            val ctx = try { 
-                // hack: get context via regionManager's private field not accessible, use app context
-                null
-            } catch (_: Exception) { null }
             logger.i("HomeVM", "TestMode $enabled")
             if (enabled) hmsManager.connect() else hmsManager.disconnect()
         }
     }
 
-    fun saveTestModeSync(context: android.content.Context, enabled: Boolean) {
-        context.getSharedPreferences("beidou_region", android.content.Context.MODE_PRIVATE)
+    fun saveTestModeSync(context: Context, enabled: Boolean) {
+        context.getSharedPreferences("beidou_region", Context.MODE_PRIVATE)
             .edit().putBoolean("test_mode_prefs", enabled).apply()
         setTestMode(enabled)
+    }
+
+    suspend fun autoDetect(): List<BypassAttempt> {
+        return regionManager.autoDetectAndApply()
     }
 
     fun getStatusText(): String = regionManager.getBypassStatus()

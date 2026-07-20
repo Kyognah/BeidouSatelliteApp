@@ -1,7 +1,8 @@
 package com.huawei.beidousatellite.util
 
-import android.os.Environment
+import android.content.Context
 import android.util.Log
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.FileWriter
 import java.text.SimpleDateFormat
@@ -11,9 +12,20 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class SatelliteLogger @Inject constructor() {
+class SatelliteLogger @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
     private val fileDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+
+    private fun getLogDir(category: String): File {
+        // Use app-specific external files dir which is accessible without permission on Android 10+
+        val base = File(context.getExternalFilesDir(null), "Documents/BeidouSatellite/Logs/$category")
+        if (!base.exists()) base.mkdirs()
+        return base
+    }
+
+    fun getLogPath(): String = File(context.getExternalFilesDir(null), "Documents/BeidouSatellite/Logs").absolutePath
 
     fun d(tag: String, msg: String) {
         Log.d(tag, msg)
@@ -40,24 +52,20 @@ class SatelliteLogger @Inject constructor() {
 
     private fun writeToFile(category: String, tag: String, msg: String) {
         try {
-            val base = Environment.getExternalStorageDirectory()?.let {
-                File(it, "Android/data/com.huawei.beidousatellite/files/Documents/BeidouSatellite/Logs/$category")
-            } ?: return
-            if (!base.exists()) base.mkdirs()
+            val base = getLogDir(category)
             val fileName = "${fileDateFormat.format(Date())}.log"
             val file = File(base, fileName)
             FileWriter(file, true).use { w ->
                 w.append("${dateFormat.format(Date())} $tag: $msg\n")
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.e("SatelliteLogger", "Failed to write log", e)
+        }
     }
 
     private fun writeCrash(thr: Throwable) {
         try {
-            val base = Environment.getExternalStorageDirectory()?.let {
-                File(it, "Android/data/com.huawei.beidousatellite/files/Documents/BeidouSatellite/Logs/crash")
-            } ?: return
-            if (!base.exists()) base.mkdirs()
+            val base = getLogDir("crash")
             val file = File(base, "${fileDateFormat.format(Date())}_crash.log")
             FileWriter(file, true).use { w ->
                 w.append("---- CRASH ${dateFormat.format(Date())} ----\n")
@@ -65,5 +73,16 @@ class SatelliteLogger @Inject constructor() {
                 w.append("\n")
             }
         } catch (_: Exception) {}
+    }
+
+    fun getAllLogs(): List<File> {
+        val root = File(context.getExternalFilesDir(null), "Documents/BeidouSatellite/Logs")
+        return root.walkTopDown().filter { it.isFile && it.extension == "log" }.toList()
+    }
+
+    fun readLog(file: File, lines: Int = 200): String {
+        return try {
+            file.readLines().takeLast(lines).joinToString("\n")
+        } catch (e: Exception) { "Failed to read ${file.name}: ${e.message}" }
     }
 }
