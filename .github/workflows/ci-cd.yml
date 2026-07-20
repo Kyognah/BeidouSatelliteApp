@@ -223,7 +223,7 @@ jobs:
         with:
           fileName: 'release.keystore'
           encodedString: ${{ secrets.KEYSTORE_BASE64 }}
-        if: env.KEYSTORE_BASE64 != ''
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
 
       - name: Build Release AAB
         run: |
